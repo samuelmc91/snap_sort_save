@@ -14,7 +14,7 @@ def crop_image(img, root_dir):
      # base_x and base_y are the x and y of the first position crop
      # if the camera is moved recrop position one and set the base_x and base_y to the new x and y value
      # do not change the width or height
-     fname = img.split('/')[7].split('.')[0]
+     fname = img.split('/')[8].split('.')[0]
      base_x = 415
      base_y = 456
      w = 143
@@ -31,7 +31,7 @@ def crop_image(img, root_dir):
      img = cv2.imread(img)
 
      for x, y in zip(x, y):
-          filename = root_dir + '/Temp/' + fname + '_' + str(count) + '.jpg'
+          filename = root_dir + 'Temp/' + fname + '_' + str(count) + '.jpg'
           new_x = base_x + x
           new_y = base_y + y
           crop_img = img[new_y:new_y + h, new_x:new_x + w]
