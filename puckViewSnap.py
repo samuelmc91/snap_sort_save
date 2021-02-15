@@ -143,7 +143,7 @@ class Watcher:
                     p1.start()
                 except Exception:
                     print('Prediction Failed')
-                # A one minute wait to allow conditions to change
+                # A fifteen second wait to allow conditions to change
                 time.sleep(15)
         self.post_change()
 
@@ -159,7 +159,7 @@ class Watcher:
 
 def check_for_change(goal):
     while True:
-        time.sleep(5)
+        time.sleep(10)
         Watcher(goal).set_value(
             epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get())
         print('Waiting for rotation')
