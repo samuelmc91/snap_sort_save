@@ -115,8 +115,8 @@ class Watcher:
             print('Please Fill Dewar to Continue')
         
         if puck_check and fill_check:
-            # A one and a half minute buffer to allow the dewar to rotate
-            time.sleep(20)
+            # A one minute buffer to allow the dewar to rotate
+            time.sleep(60)
             file_path = epics.caget('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath', as_string=True)
             print('Images are in: {}'.format(file_path))
             epics.PV('XF:17IDB-ES:AMX{Cam:14}Proc1:EnableFilter').put(1)
