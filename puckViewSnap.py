@@ -19,7 +19,7 @@ sys.path.insert(0, '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/snap
 from crop_images import crop_image
 
 start_date = date.today().strftime('%b_%d_%Y')
-if os.path.exists(ROOT_DIR + start_date + '_puckSnap'):
+if os.path.exists(ROOT_DIR + 'puckSnap_' + start_date):
     today = date.today()
 else:
     today = ''
@@ -77,9 +77,8 @@ class Watcher:
             if date.today() != today:
                 today = date.today()
                 date_dir = today.strftime('%b_%d_%Y')
-                epics.PV('XF:17IDB-ES:AMX{Cam:14}Proc1:EnableFilter').put(1)
+                tmp_dir = 'puckSnap_' + date_dir
                 epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileNumber').put(1)
-                tmp_dir = date_dir + '_puckSnap'
                 # Joining the image path to the temporary directory for a new directory to store images
                 image_path = os.path.join(ROOT_DIR, tmp_dir)
                 os.system("mkdir -p " + image_path)
@@ -91,7 +90,6 @@ class Watcher:
 
         ##### Comment/Uncomment below to set directory by user and not date #####
 
-            # epics.PV('XF:17IDB-ES:AMX{Cam:14}Proc1:EnableFilter').put(1)
             # epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileNumber').put(1)
             
             # # Get the username for the directory and file name
@@ -119,6 +117,7 @@ class Watcher:
             time.sleep(20)
             file_path = epics.caget('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath', as_string=True)
             print('Images are in: {}'.format(file_path))
+            epics.PV('XF:17IDB-ES:AMX{Cam:14}Proc1:EnableFilter').put(1)
             for i in range(1, 4):
                 print('Taking image: ' + str(i) + ' of 3')
                 # Change the settings to take the picture and capture the image
@@ -137,8 +136,11 @@ class Watcher:
                 acq.put(1)
 
                 img = epics.caget('XF:17IDB-ES:AMX{Cam:14}JPEG1:FullFileName_RBV', as_string=True)
-                p1 = multiprocessing.Process(target=crop_image(img, ROOT_DIR))
-                p1.start()
+                try:
+                    p1 = multiprocessing.Process(target=crop_image(img, ROOT_DIR))
+                    p1.start()
+                except Exception:
+                    print('Prediction Failed')
                 # A one minute wait to allow conditions to change
                 time.sleep(15)
         self.post_change()
