@@ -26,7 +26,7 @@ def predict_image(img, root_dir):
     tf.get_logger().setLevel('ERROR')
     category_names = ['Straight', 'Tilted', 'Empty']
     model_dir = '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/models/'
-    model_name = 'puck_visualization_model_14_Feb_2021.h5'
+    model_name = 'puck_visualization_model_13Feb21.h5'
     
     straight_dir = root_dir + 'Straight'
     tilted_dir = root_dir + 'Tilted'
