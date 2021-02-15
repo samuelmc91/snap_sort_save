@@ -106,10 +106,12 @@ class Watcher:
             # # Input file name to CSS
             # epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileName').put(user_name)
         
+        ##### Comment/Uncomment above to set directory by user and not date #####
+
         if fill_level >= 85:
             fill_check = True
         else:
-            print('Fill Violation, Fill Level Is: ' + str(fill_level))
+            print('Fill Violation, Fill Level Is: ' + str('%.2f' % fill_level))
             print('Please Fill Dewar to Continue')
         
         if puck_check and fill_check:
