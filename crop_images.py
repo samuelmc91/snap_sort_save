@@ -4,13 +4,9 @@ import cv2
 import sys
 import multiprocessing
 
-if not os.path.exists('/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/snap_sort_save/'):
-    raise RuntimeError('ROOT DIRECTORY NOT FOUND')
-
-sys.path.insert(0, '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/snap_sort_save/')
-from predict_position import predict_image
-
 def crop_image(img, root_dir):
+     sys.path.insert(0, root_dir)
+     from predict_position import predict_image
      # base_x and base_y are the x and y of the first position crop
      # if the camera is moved recrop position one and set the base_x and base_y to the new x and y value
      # do not change the width or height
