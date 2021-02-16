@@ -25,16 +25,14 @@ def prepare_image(img_name):
 def predict_image(img, root_dir):
     tf.get_logger().setLevel('ERROR')
     category_names = ['Straight', 'Tilted', 'Empty']
-    model_dir = '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/models/'
-    model_name = 'puck_visualization_model_13Feb21.h5'
+    model = '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/models/puck_visualization_model_13Feb21.h5'
     
     straight_dir = root_dir + 'Straight'
     tilted_dir = root_dir + 'Tilted'
     empty_dir = root_dir + 'Empty'
-    print('Model Used: {}'.format(model_dir + model_name))
+    print('Model Used: {}'.format(model))
     print('Predicting image: {}'.format(img))
-    new_model = load_model(
-        model_dir + model_name)
+    new_model = load_model(model)
     prediction = np.argmax(new_model.predict(
         [prepare_image(img)]), axis=-1)
     if category_names[prediction[0]] == 'Straight':
