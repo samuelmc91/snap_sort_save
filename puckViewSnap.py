@@ -15,7 +15,7 @@ if os.path.exists('/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/snap_
 else:
     raise RuntimeError('ROOT DIRECTORY NOT FOUND')
 
-sys.path.insert(0, '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/snap_sort_save/')
+sys.path.insert(0, ROOT_DIR)
 from crop_images import crop_image
 
 start_date = date.today().strftime('%b_%d_%Y')
