@@ -7,6 +7,7 @@ import random
 from datetime import date
 import multiprocessing
 import sys
+import math
 
 global today
 # Check to make sure that the folder for runtime exists
@@ -15,14 +16,8 @@ if os.path.exists('/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/snap_
 else:
     raise RuntimeError('ROOT DIRECTORY NOT FOUND')
 
-sys.path.insert(0, ROOT_DIR)
+sys.path.insert(0, '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/snap_sort_save/')
 from crop_images import crop_image
-
-start_date = date.today().strftime('%b_%d_%Y')
-if os.path.exists(ROOT_DIR + 'puckSnap_' + start_date):
-    today = date.today()
-else:
-    today = ''
 
 acq = epics.PV('XF:17IDB-ES:AMX{Cam:14}cam1:Acquire')
 img_mode = epics.PV('XF:17IDB-ES:AMX{Cam:14}cam1:ImageMode')
@@ -30,13 +25,6 @@ data_type = epics.PV('XF:17IDB-ES:AMX{Cam:14}cam1:DataType')
 save_file = epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:WriteFile')
 
 position_goal = epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get()
-
-
-class plate_check:
-    def __init__(self, plate, degree):
-        self.plate = plate
-        self.degree = degree
-
 
 class Watcher:
     def __init__(self, value):
@@ -49,6 +37,7 @@ class Watcher:
             self.post_change()
 
     def pre_change(self):
+        position_goal = int(epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get())
         puck_check = False
         fill_check = False
         fill_level = epics.PV('XF:17IDB-ES:AMX{CS8}Ln2Level-I').get()
@@ -56,37 +45,40 @@ class Watcher:
         # Input file name to CSS
         epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileName').put(user_name)
 
-        plates = (plate_check(1, 180),
-                  plate_check(2, 135),
-                  plate_check(3, 90),
-                  plate_check(4, 45),
-                  plate_check(5, 0),
-                  plate_check(6, 315),
-                  plate_check(7, 270),
-                  plate_check(8, 225))
-        holder = 0
+        plates = dict([(1, 180),
+                  (2, 135),
+                  (3, 90),
+                  (4, 45),
+                  (5, 0),
+                  (6, 315),
+                  (7, 270),
+                  (8, 225)])
+
+        degrees_high_check = position_goal + 135
+        degrees_low_check = position_goal - 225
+
+        plate = next(plate for plate, degree in plates.items() if degree == degrees_high_check or degree == degrees_low_check)
+       
         ##### Comment/Uncomment below to set directory by user and not date #####
-        for plate in plates:
-             if (epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get() + 135) == plate.degree or (epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get() - 225) == plate.degree:
-                    holder = plate.plate
-        if epics.PV('XF:17IDB-ES:AMX{Wago:1}Puck' + str(holder) + 'C-Sts').get() != 1:
-            print('There is no puck on position: {}. No image taken'.format(holder))
+        
+        if epics.PV('XF:17IDB-ES:AMX{Wago:1}Puck' + str(plate) + 'C-Sts').get() != 1:
+            print('There is no puck on position: {}. No image taken'.format(plate))
         else:
             puck_check = True
-            global today
-            if date.today() != today:
-                today = date.today()
-                date_dir = today.strftime('%b_%d_%Y')
-                tmp_dir = 'puckSnap_' + date_dir
-                epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileNumber').put(1)
-                # Joining the image path to the temporary directory for a new directory to store images
-                image_path = os.path.join(ROOT_DIR, tmp_dir)
-                os.system("mkdir -p " + image_path)
-                os.system("chmod 777 " + image_path)
-                print('Directory Created for today at: {}'.format(image_path))
-                # Input file path to CSS
-                epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath').put(image_path)
-
+        
+        today = date.today().strftime('%b_%d_%Y')
+        todays_dir = ROOT_DIR + 'puckSnap_' + today
+        
+        if os.path.exists(ROOT_DIR + 'puckSnap_' + today):
+            epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath').put(todays_dir)
+        else:
+            epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileNumber').put(1)
+            # Joining the image path to the temporary directory for a new directory to store images
+            os.system("mkdir -p " + todays_dir)
+            os.system("chmod 777 " + todays_dir)
+            print('Directory Created for today at: {}'.format(todays_dir))
+            # Input file path to CSS
+            epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath').put(todays_dir)
 
         ##### Comment/Uncomment below to set directory by user and not date #####
 
@@ -113,15 +105,29 @@ class Watcher:
         else:
             print('Fill Violation, Fill Level Is: ' + str('%.2f' % fill_level))
             print('Please Fill Dewar to Continue')
-        
-        if puck_check and fill_check:
-            # A one minute buffer to allow the dewar to rotate
-            time.sleep(60)
-            file_path = epics.caget('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath', as_string=True)
-            print('Images are in: {}'.format(file_path))
-            epics.PV('XF:17IDB-ES:AMX{Cam:14}Proc1:EnableFilter').put(1)
-            for i in range(1, 4):
+
+        if puck_check and fill_check:   
+            while math.isclose(int(epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.RBV').get()), int(epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get()), abs_tol = 2) == False:
+                    print('Dewar is at: {} \nRotating to: {}'.format(int(epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.RBV').get()), int(epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get())))
+                    time.sleep(2)
+            for i in range(1, 4):    
+                # current_position = int(epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.RBV').get())
+                # position_goal = int(epics.PV('XF:17IDB-ES:AMX{Dew:1-Ax:R}Mtr.VAL').get())
+                # if not math.isclose(current_position,position_goal, abs_tol = 2):
+                #     print('Restarted for New Rotation')
+                #     break
                 print('Taking image: ' + str(i) + ' of 3')
+
+                user_name = getpass.getuser()
+                inner_dir = user_name + '_puckSnap_' + str(random.randint(11111, 99999))
+                inner_dir = os.path.join(todays_dir, inner_dir)
+                os.system("mkdir -p " + inner_dir)
+                os.system("chmod 777 " + inner_dir)
+                print('Images are in: {}'.format(inner_dir))
+                epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath').put(inner_dir)
+
+                epics.PV('XF:17IDB-ES:AMX{Cam:14}Proc1:EnableFilter').put(1)
+
                 # Change the settings to take the picture and capture the image
                 acq.put(0)
                 img_mode.put(0)
@@ -137,14 +143,17 @@ class Watcher:
                 data_type.put(1)
                 acq.put(1)
 
-                img = epics.caget('XF:17IDB-ES:AMX{Cam:14}JPEG1:FullFileName_RBV', as_string=True)
+                img = epics.caget('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileName', as_string=True) + '_' + \
+                str(epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FileNumber').get() - 1).zfill(3) + '.jpg'
+
                 try:
-                    p1 = multiprocessing.Process(target=crop_image(img, ROOT_DIR))
+                    p1 = multiprocessing.Process(target=crop_image(img, inner_dir))
                     p1.start()
-                except Exception:
-                    print('Prediction Failed')
+                except Exception as e:
+                    print('Prediction Failed: {}'.format(e))
                 # A fifteen second wait to allow conditions to change
                 time.sleep(15)
+        epics.PV('XF:17IDB-ES:AMX{Cam:14}JPEG1:FilePath').put(todays_dir)
         self.post_change()
 
     def post_change(self):

@@ -22,26 +22,31 @@ def prepare_image(img_name):
     return image_reshape
 
 
-def predict_image(img, root_dir):
+def predict_image(new_image, inner_dir):
     tf.get_logger().setLevel('ERROR')
     category_names = ['Straight', 'Tilted', 'Empty']
-    model = '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/models/puck_visualization_model_13Feb21.h5'
-    
-    straight_dir = root_dir + 'Straight'
-    tilted_dir = root_dir + 'Tilted'
-    empty_dir = root_dir + 'Empty'
-    print('Model Used: {}'.format(model))
-    print('Predicting image: {}'.format(img))
-    new_model = load_model(model)
+    model_dir = '/GPFS/CENTRAL/XF17ID2/sclark1/puck_visualization_system/models/'
+    model_name = 'puck_visualization_model_13Feb21.h5'
+    dir_name = {}
+    for category_name in category_names:
+        new_dir = os.path.join(inner_dir, category_name)
+        os.system('mkdir -p ' + new_dir)
+        dir_name[category_name] = new_dir
+
+    print('Model Used: {}'.format(model_dir + model_name))
+    print('Predicting image: {}'.format(new_image))
+    new_model = load_model(
+        model_dir + model_name)
     prediction = np.argmax(new_model.predict(
-        [prepare_image(img)]), axis=-1)
+        [prepare_image(new_image)]), axis=-1)
     if category_names[prediction[0]] == 'Straight':
-        shutil.move(img, straight_dir)
-    elif category_names[prediction[0]] == 'Empty':
-        shutil.move(img, empty_dir)
+        shutil.move(new_image, dir_name['Straight'])
     elif category_names[prediction[0]] == 'Tilted':
-        shutil.move(img, tilted_dir)
+        shutil.move(new_image, dir_name['Tilted'])
+    elif category_names[prediction[0]] == 'Empty':
+        shutil.move(new_image, dir_name['Empty'])
     else:
         print('Prediction Error')
+    return category_names[prediction[0]]
 
 
